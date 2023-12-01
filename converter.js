@@ -4,7 +4,7 @@ const filepath = process.argv[2];
 
 const fileContents = fs.readFileSync(filepath, "utf-8");
 
-const oldRules = fileContents.split(" .");
+const oldRules = fileContents.split(" .\n");
 const newRules = [];
 
 oldRules.forEach((line) => {
@@ -22,36 +22,66 @@ const newFileContents = newRules.join("\n");
 const filename = filepath.split(".")[0];
 fs.writeFileSync(`${filename}.bnf`, newFileContents);
 
-function convertRule(key, value) {
-  currentIdx = 0;
-  console.log("\n\nConverting rule", key, `${value}`);
-  if (!value.includes("(") && !value.includes("[") && !value.includes("{")) {
-    const newRule = `${key} = ${value}`;
-    if (!newRules.includes(newRule)) newRules.push(newRule);
-    return;
-  }
-
+function convertRule(key, value, currentIdx = 0) {
+  value = value.replace(/\n/g, "");
+  console.log(`key: ${key}, value: ${value}`);
   let newValue = value;
-  newValue = dealWithGrouping(key, value, "(", ")");
-  newValue = dealWithGrouping(key, value, "[", "]");
-  newValue = dealWithGrouping(key, value, "{", "}");
-
-  if (newValue !== value && newValue) {
-    console.log("New value", newValue);
-    convertRule(key, newValue);
+  while (
+    newValue.includes("(") ||
+    newValue.includes("[") ||
+    newValue.includes("{")
+  ) {
+    console.log("Loop", newValue);
+    let result = dealWithGrouping(key, newValue, "(", ")", currentIdx);
+    newValue = result.value;
+    currentIdx = result.currentIdx;
+    result = dealWithGrouping(key, newValue, "[", "]", currentIdx, true);
+    newValue = result.value;
+    currentIdx = result.currentIdx;
+    result = dealWithGrouping(
+      key,
+      newValue,
+      "{",
+      "}",
+      currentIdx,
+      false,
+      true
+    );
+    newValue = result.value;
+    currentIdx = result.currentIdx;
+    console.log("New value for" + key, newValue);
+  }
+  if (
+    !newValue.includes("(") &&
+    !newValue.includes("[") &&
+    !newValue.includes("{")
+  ) {
+    const newRule = `${key} = ${newValue}`;
+    if (!newRules.includes(newRule)) {
+      console.log("New rule", newRule);
+      newRules.push(newRule);
+    }
   }
 }
 
-function dealWithGrouping(key, value, openingChar, closingChar) {
+function dealWithGrouping(
+  key,
+  value,
+  openingChar,
+  closingChar,
+  currentIdx,
+  addEps = false,
+  addRec = false
+) {
   if (value.includes(openingChar)) {
-    console.log("Found grouping", openingChar, value);
     const openingIdx = value.indexOf(openingChar);
-    if (!isFirstGrouping(value, openingIdx)) return;
+    if (!isFirstGrouping(value, openingIdx)) return { value, currentIdx };
     let currentValue = value;
     let closingIdx;
     do {
       closingIdx = currentValue.lastIndexOf(closingChar);
       currentValue = currentValue.slice(0, closingIdx);
+      console.log("Try", currentValue);
     } while (
       !isCorrectGrouping(
         value,
@@ -61,19 +91,44 @@ function dealWithGrouping(key, value, openingChar, closingChar) {
         closingChar
       )
     );
-    const newValue = value.slice(openingIdx + 1, closingIdx);
-    console.log("New value", newValue, openingIdx, closingIdx);
+    let newValue = value.slice(openingIdx + 1, closingIdx);
+    console.log("This worked", newValue);
     currentIdx++;
-    convertRule(`${key}P${currentIdx}`, newValue);
-    return value.replace(openingIdx, closingIdx + 1, `${key}P${currentIdx}`);
+    newValue = convertRule(
+      `${key}P${currentIdx}P1`,
+      newValue + (addEps ? "| eps" : ""),
+      0
+    );
+    if (addRec) {
+      newValue = convertRule(
+        `${key}P${currentIdx}`,
+        `${key}P${currentIdx}P1 | eps`,
+        0
+      );
+    }
+    newValue = value.slice(openingIdx, closingIdx + 1);
+    console.log(
+      "Replace",
+      newValue,
+      "with",
+      `${addRec ? key : ""} ${key}P${currentIdx}`
+    );
+    value = value.replace(
+      newValue,
+      `${addRec ? key : ""} ${key}P${currentIdx}`
+    );
   }
+
+  return { value, currentIdx };
 }
 
 function isFirstGrouping(value, openingIdx) {
   if (openingIdx === 0) return true;
   const before = value.slice(0, openingIdx);
   return (
-    !before.includes("(") && !before.includes("[") && !before.includes("{")
+    !before.includes("(") &&
+    !before.includes("[") &&
+    !before.includes("{")
   );
 }
 
@@ -94,48 +149,4 @@ function isCorrectGrouping(
     if (openCounter < 0) return false;
   }
   return true;
-}
-
-function convertRuleOld(key, value) {
-  // get rid of newlines in the value
-  value = value.replace(/\n/g, " ");
-  // i want to convert a grammar in the form of ebnf to bnf
-
-  // get rid of ''
-  //   const newValue = value.replace(/'/g, "");
-  let currentIdx = 0;
-  // for every () in the value, replace it with a new rule
-  value = value.replace(/ \(( [^\)]+ )\) /g, (match, p1) => {
-    console.log("Found group rule", p1);
-    currentIdx++;
-    convertRule(`${key}Part${currentIdx}`, p1);
-    // tempRules.push(`${key}Part${currentIdx} = ${p1}`);
-    return `${key}Part${currentIdx}`;
-  });
-  // for every [] in the value, replace it with a new rule
-  value = value.replace(/ \[( [^\]]+ )\] /g, (match, p1) => {
-    console.log("Found optional rule", p1);
-    currentIdx++;
-    convertRule(`${key}Part${currentIdx}`, `${key}Part${currentIdx} | eps`);
-    currentIdx++;
-    convertRule(`${key}Part${currentIdx - 1}`, p1);
-    return `${key}Part${currentIdx - 1}`;
-  });
-  //   console.log("After optional", value);
-  // for every {} in the value, replace it with a new rule
-
-  value = value.replace(/ \{( [^\}]+ )\} /g, (match, p1) => {
-    currentIdx++;
-    convertRule(
-      `${key}Part${currentIdx}`,
-      `${key}Part${currentIdx} ${key}Part${currentIdx + 1} | eps`
-    );
-    currentIdx++;
-    convertRule(`${key}Part${currentIdx}`, p1);
-    return `${key}Part${currentIdx - 1}`;
-  });
-
-  const newRule = `${key} = ${value}`;
-  if (newRules.includes(newRule)) return;
-  newRules.push(newRule);
 }

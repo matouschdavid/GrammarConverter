@@ -1,7 +1,7 @@
-A = ( a | b ) .
-B = ( a | b ) ( a | b ) .
-C = ( a | b ) ( a | b ) ( a | b ) .
-D = ( a | b | c | d ) .
-E = ( a | b | c | d ) ( a | b | c | d ) .
-F = ( a | b | c | d ) ( a | b | c | d ) ( a | b | c | d ) .
 G = ( ( a | ( b | c ) | d ) | e ) | ( f | g ) .
+H = a | b ( c | d ) .
+I = a | b { A | B | c } .
+A = [ "+" | "-" ] .
+B = [ "*" | "/" ] t .
+X = { a | b | c } | { d | e } .
+Y = {a | { b | c } } .
