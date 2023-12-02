@@ -1,10 +1,12 @@
 const fs = require("fs");
+const openingChars = ["( ", "[ ", "{ "];
+const closingChars = [") ", "] ", "} "];
 
 const filepath = process.argv[2];
 
 const fileContents = fs.readFileSync(filepath, "utf-8");
 
-const oldRules = fileContents.split(" .\n");
+const oldRules = fileContents.split(".\n");
 const newRules = [];
 
 oldRules.forEach((line) => {
@@ -23,38 +25,52 @@ const filename = filepath.split(".")[0];
 fs.writeFileSync(`${filename}.bnf`, newFileContents);
 
 function convertRule(key, value, currentIdx = 0) {
+  // await new Promise((resolve) => setTimeout(resolve, 1000));
   value = value.replace(/\n/g, "");
   console.log(`key: ${key}, value: ${value}`);
   let newValue = value;
   while (
-    newValue.includes("(") ||
-    newValue.includes("[") ||
-    newValue.includes("{")
+    newValue.includes(openingChars[0]) ||
+    newValue.includes(openingChars[1]) ||
+    newValue.includes(openingChars[2])
   ) {
     console.log("Loop", newValue);
-    let result = dealWithGrouping(key, newValue, "(", ")", currentIdx);
-    newValue = result.value;
-    currentIdx = result.currentIdx;
-    result = dealWithGrouping(key, newValue, "[", "]", currentIdx, true);
+    let result = dealWithGrouping(
+      key,
+      newValue,
+      openingChars[0],
+      closingChars[0],
+      currentIdx
+    );
     newValue = result.value;
     currentIdx = result.currentIdx;
     result = dealWithGrouping(
       key,
       newValue,
-      "{",
-      "}",
+      openingChars[1],
+      closingChars[1],
+      currentIdx,
+      true
+    );
+    newValue = result.value;
+    currentIdx = result.currentIdx;
+    result = dealWithGrouping(
+      key,
+      newValue,
+      openingChars[2],
+      closingChars[2],
       currentIdx,
       false,
       true
     );
     newValue = result.value;
     currentIdx = result.currentIdx;
-    console.log("New value for" + key, newValue);
+    console.log("New value for " + key, newValue);
   }
   if (
-    !newValue.includes("(") &&
-    !newValue.includes("[") &&
-    !newValue.includes("{")
+    !newValue.includes(openingChars[0]) &&
+    !newValue.includes(openingChars[1]) &&
+    !newValue.includes(openingChars[2])
   ) {
     const newRule = `${key} = ${newValue}`;
     if (!newRules.includes(newRule)) {
@@ -106,12 +122,14 @@ function dealWithGrouping(
         0
       );
     }
+    console.log(value, openingIdx, closingIdx);
     newValue = value.slice(openingIdx, closingIdx + 1);
+    console.log("NewValue126", newValue);
     console.log(
       "Replace",
       newValue,
       "with",
-      `${addRec ? key : ""} ${key}P${currentIdx}`
+      `${addRec ? key : ""} ${key}P${currentIdx} ${addEps ? "| eps" : ""}`
     );
     value = value.replace(
       newValue,
@@ -126,9 +144,9 @@ function isFirstGrouping(value, openingIdx) {
   if (openingIdx === 0) return true;
   const before = value.slice(0, openingIdx);
   return (
-    !before.includes("(") &&
-    !before.includes("[") &&
-    !before.includes("{")
+    !before.includes(openingChars[0]) &&
+    !before.includes(openingChars[1]) &&
+    !before.includes(openingChars[2])
   );
 }
 
@@ -139,13 +157,16 @@ function isCorrectGrouping(
   openingChar,
   closingChar
 ) {
-  const currentGroup = value.slice(openingIdx + 1, closingIdx);
+  const currentGroup = value.slice(openingIdx + 1, closingIdx + 1);
   let openCounter = 0;
   for (let i = 0; i < currentGroup.length; i++) {
-    const char = currentGroup[i];
-    if (char === openingChar) openCounter++;
-    if (char === closingChar) openCounter--;
-
+    const currentChar = currentGroup[i];
+    const nextChar = currentGroup[i + 1];
+    if (currentChar === openingChar[0] && nextChar === openingChar[1])
+      openCounter++;
+    if (currentChar === closingChar[0] && nextChar === closingChar[1])
+      openCounter--;
+    console.log("Open counter", openCounter);
     if (openCounter < 0) return false;
   }
   return true;

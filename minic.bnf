@@ -1,2 +1,11 @@
-AP1P1 =  a | b| eps
-A =  AP1]
+AP1P1 =  a | b | eps
+A =  AP1 
+BP1P1 =  a | b 
+B =  BP1 
+CP1P1 =  a | b 
+CP1 = CP1P1 | eps
+C = C CP1 
+DP1P1 =  a | b 
+DP2P1 =  c | d 
+D =  DP1  DP2 
+E = "(" a | b ")" 
