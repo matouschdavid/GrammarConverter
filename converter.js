@@ -12,6 +12,7 @@ const newRules = [];
 oldRules.forEach((line) => {
   const [key, value] = line.split(" = ");
   if (!key || !value) return;
+  console.log("Start conversion", key, " = ", value);
   convertRule(key, value);
 });
 
@@ -111,7 +112,7 @@ function dealWithGrouping(
     console.log("This worked", newValue);
     currentIdx++;
     newValue = convertRule(
-      `${key}P${currentIdx}P1`,
+      `${key}P${currentIdx}`,
       newValue + (addEps ? "| eps" : ""),
       0
     );
@@ -166,7 +167,7 @@ function isCorrectGrouping(
       openCounter++;
     if (currentChar === closingChar[0] && nextChar === closingChar[1])
       openCounter--;
-    console.log("Open counter", openCounter);
+
     if (openCounter < 0) return false;
   }
   return true;
