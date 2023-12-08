@@ -1,11 +1,25 @@
-AP1P1 =  a | b | eps
-A =  AP1 
-BP1P1 =  a | b 
-B =  BP1 
-CP1P1 =  a | b 
-CP1 = CP1P1 | eps
-C = C CP1 
-DP1P1 =  a | b 
-DP2P1 =  c | d 
-D =  DP1  DP2 
-E = "(" a | b ")" 
+MCP1 =  VarDecl | eps
+MC = "void" "main" "(" ")" "{" MCP1 StatSeq "}" 
+
+VarDeclP1P1 =  "," ident 
+VarDeclP1 = VarDeclP1 VarDeclP1P1 | eps
+VarDecl = "int" ident VarDeclP1 ";" 
+
+StatSeqP1P1 =  Stat 
+StatSeqP1 = StatSeqP1 StatSeqP1P1 | eps
+StatSeq = Stat StatSeqP1 
+
+StatP1 =  ident "=" Expr | "scanf" "(" ident ")" | "printf" "(" Expr ")" | eps
+Stat = StatP1 ";" 
+
+ExprP1P1P1 =  "+" | "-" 
+ExprP1P1 =  ExprP1P1P1 Term 
+ExprP1 = ExprP1 ExprP1P1 | eps
+Expr = Term ExprP1 
+
+TermP1P1P1 =  "*" | "/" 
+TermP1P1 =  TermP1P1P1 Fact 
+TermP1 = TermP1 TermP1P1 | eps
+Term = Fact TermP1 
+
+Fact = ident | number | "(" Expr ")" 

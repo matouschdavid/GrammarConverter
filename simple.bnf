@@ -1,1 +1,8 @@
-A = a | b .B
+A = a | b 
+BP1 =  a | b 
+B =  BP1 
+CP1 =  a | b 
+C =  CP1 c 
+DP1 =  a | b 
+DP2 =  c | d 
+D =  DP1  DP2 

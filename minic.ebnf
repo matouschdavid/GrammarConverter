@@ -1,5 +1,13 @@
-A = [ a | b ] .
-B = ( a | b ) .
-C = { a | b } .
-D = ( a | b ) ( c | d ) .
-E = "(" a | b ")" .
+MC = "void" "main" "(" ")" "{"
+ [ VarDecl ]
+ StatSeq
+ "}" .
+VarDecl = "int" ident { "," ident } ";" .
+StatSeq = Stat { Stat } .
+Stat = [ ident "=" Expr
+ | "scanf" "(" ident ")"
+ | "printf" "(" Expr ")"
+ ] ";" .
+Expr = Term { ( "+" | "-" ) Term } .
+Term = Fact { ( "*" | "/" ) Fact } .
+Fact = ident | number | "(" Expr ")" .

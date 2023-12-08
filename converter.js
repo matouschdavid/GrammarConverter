@@ -16,6 +16,8 @@ oldRules.forEach((line) => {
   convertRule(key, value);
 });
 
+
+
 // order newRules lexographically
 // newRules.sort();
 
@@ -25,17 +27,31 @@ const newFileContents = newRules.join("\n");
 const filename = filepath.split(".")[0];
 fs.writeFileSync(`${filename}.bnf`, newFileContents);
 
-function convertRule(key, value, currentIdx = 0) {
+function convertRule(key, value, currentIdx = 0, addRec = false) {
   // await new Promise((resolve) => setTimeout(resolve, 1000));
   value = value.replace(/\n/g, "");
   console.log(`key: ${key}, value: ${value}`);
   let newValue = value;
+  if (
+    !value.includes(openingChars[0]) &&
+    !value.includes(openingChars[1]) &&
+    !value.includes(openingChars[2]) &&
+    addRec
+  ) {
+    const newRule = `${key} = ${newValue}`;
+    if (!newRules.includes(newRule)) {
+      console.log("New rule", newRule);
+      newRules.push(newRule);
+    }
+    return;
+  }
   while (
     newValue.includes(openingChars[0]) ||
     newValue.includes(openingChars[1]) ||
     newValue.includes(openingChars[2])
   ) {
     console.log("Loop", newValue);
+    //Deal with ()
     let result = dealWithGrouping(
       key,
       newValue,
@@ -45,6 +61,7 @@ function convertRule(key, value, currentIdx = 0) {
     );
     newValue = result.value;
     currentIdx = result.currentIdx;
+    //Deal with []
     result = dealWithGrouping(
       key,
       newValue,
@@ -55,6 +72,7 @@ function convertRule(key, value, currentIdx = 0) {
     );
     newValue = result.value;
     currentIdx = result.currentIdx;
+    //Deal with {}
     result = dealWithGrouping(
       key,
       newValue,
@@ -111,31 +129,28 @@ function dealWithGrouping(
     let newValue = value.slice(openingIdx + 1, closingIdx);
     console.log("This worked", newValue);
     currentIdx++;
-    newValue = convertRule(
-      `${key}P${currentIdx}`,
-      newValue + (addEps ? "| eps" : ""),
-      0
-    );
     if (addRec) {
+      newValue = convertRule(`${key}P${currentIdx}P1`, newValue, 0, true);
       newValue = convertRule(
         `${key}P${currentIdx}`,
-        `${key}P${currentIdx}P1 | eps`,
-        0
+        `${key}P${currentIdx} ${key}P${currentIdx}P1 | eps`,
+        0,
+        false
+      );
+    } else {
+      newValue = convertRule(
+        `${key}P${currentIdx}`,
+        newValue + (addEps ? "| eps" : ""),
+        0,
+        addRec
       );
     }
+
     console.log(value, openingIdx, closingIdx);
     newValue = value.slice(openingIdx, closingIdx + 1);
     console.log("NewValue126", newValue);
-    console.log(
-      "Replace",
-      newValue,
-      "with",
-      `${addRec ? key : ""} ${key}P${currentIdx} ${addEps ? "| eps" : ""}`
-    );
-    value = value.replace(
-      newValue,
-      `${addRec ? key : ""} ${key}P${currentIdx}`
-    );
+    console.log("Replace", newValue, "with", `${key}P${currentIdx}`);
+    value = value.replace(newValue, `${key}P${currentIdx}`);
   }
 
   return { value, currentIdx };
