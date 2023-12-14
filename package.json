@@ -1,0 +1,24 @@
+{
+  "name": "grammar-converter",
+  "version": "1.0.6",
+  "description": "A simple tool to transform ebnf to bnf",
+  "main": "converter.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/matouschdavid/GrammarConverter.git"
+  },
+  "keywords": [
+    "grammar",
+    "converter"
+  ],
+  "author": "David Matousch",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/matouschdavid/GrammarConverter/issues"
+  },
+  "homepage": "https://github.com/matouschdavid/GrammarConverter#readme",
+  "bin": "./converter.js"
+}

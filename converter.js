@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const fs = require("fs");
 const openingChars = ["( ", "[ ", "{ "];
 const closingChars = [") ", "] ", "} "];
@@ -6,31 +8,26 @@ const filepath = process.argv[2];
 
 const fileContents = fs.readFileSync(filepath, "utf-8");
 
-const oldRules = fileContents.split(".\n");
+const oldRules = fileContents.split(/\.\r?\n/);
 const newRules = [];
 
 oldRules.forEach((line) => {
   const [key, value] = line.split(" = ");
   if (!key || !value) return;
-  console.log("Start conversion", key, " = ", value);
   convertRule(key, value);
 });
 
+const finalRules = newRules.map((rule) => {
+  return rule.replace(/['"]/g, "");
+});
 
+const newFileContents = finalRules.join("\n");
 
-// order newRules lexographically
-// newRules.sort();
-
-const newFileContents = newRules.join("\n");
-
-//get filename without extension
 const filename = filepath.split(".")[0];
 fs.writeFileSync(`${filename}.bnf`, newFileContents);
 
 function convertRule(key, value, currentIdx = 0, addRec = false) {
-  // await new Promise((resolve) => setTimeout(resolve, 1000));
   value = value.replace(/\n/g, "");
-  console.log(`key: ${key}, value: ${value}`);
   let newValue = value;
   if (
     !value.includes(openingChars[0]) &&
@@ -40,7 +37,6 @@ function convertRule(key, value, currentIdx = 0, addRec = false) {
   ) {
     const newRule = `${key} = ${newValue}`;
     if (!newRules.includes(newRule)) {
-      console.log("New rule", newRule);
       newRules.push(newRule);
     }
     return;
@@ -50,7 +46,6 @@ function convertRule(key, value, currentIdx = 0, addRec = false) {
     newValue.includes(openingChars[1]) ||
     newValue.includes(openingChars[2])
   ) {
-    console.log("Loop", newValue);
     //Deal with ()
     let result = dealWithGrouping(
       key,
@@ -84,7 +79,6 @@ function convertRule(key, value, currentIdx = 0, addRec = false) {
     );
     newValue = result.value;
     currentIdx = result.currentIdx;
-    console.log("New value for " + key, newValue);
   }
   if (
     !newValue.includes(openingChars[0]) &&
@@ -93,7 +87,6 @@ function convertRule(key, value, currentIdx = 0, addRec = false) {
   ) {
     const newRule = `${key} = ${newValue}`;
     if (!newRules.includes(newRule)) {
-      console.log("New rule", newRule);
       newRules.push(newRule);
     }
   }
@@ -116,7 +109,6 @@ function dealWithGrouping(
     do {
       closingIdx = currentValue.lastIndexOf(closingChar);
       currentValue = currentValue.slice(0, closingIdx);
-      console.log("Try", currentValue);
     } while (
       !isCorrectGrouping(
         value,
@@ -127,7 +119,6 @@ function dealWithGrouping(
       )
     );
     let newValue = value.slice(openingIdx + 1, closingIdx);
-    console.log("This worked", newValue);
     currentIdx++;
     if (addRec) {
       newValue = convertRule(`${key}P${currentIdx}P1`, newValue, 0, true);
@@ -146,10 +137,7 @@ function dealWithGrouping(
       );
     }
 
-    console.log(value, openingIdx, closingIdx);
     newValue = value.slice(openingIdx, closingIdx + 1);
-    console.log("NewValue126", newValue);
-    console.log("Replace", newValue, "with", `${key}P${currentIdx}`);
     value = value.replace(newValue, `${key}P${currentIdx}`);
   }
 

@@ -1,3 +1,0 @@
-IP1P1 =  A | B | c 
-IP1 =  IP1P1 | eps
-I =  a | b IP1 
